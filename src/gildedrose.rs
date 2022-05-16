@@ -13,6 +13,18 @@ impl Item {
             quality,
         }
     }
+
+    pub fn decrement_quality(&mut self) {
+        self.quality = self.quality - 1;
+    }
+
+    pub fn increment_quality(&mut self) {
+        self.quality = self.quality + 1;
+    }
+
+    pub fn decrement_sell_in(&mut self) {
+        self.sell_in = self.sell_in - 1;
+    }
 }
 
 impl Display for Item {
@@ -36,23 +48,23 @@ impl GildedRose {
             {
                 if item.quality > 0 {
                     if item.name != "Sulfuras, Hand of Ragnaros" {
-                        item.quality = item.quality - 1;
+                        item.decrement_quality();
                     }
                 }
             } else {
                 if item.quality < 50 {
-                    item.quality = item.quality + 1;
+                    item.increment_quality();
 
                     if item.name == "Backstage passes to a TAFKAL80ETC concert" {
                         if item.sell_in < 11 {
                             if item.quality < 50 {
-                                item.quality = item.quality + 1;
+                                item.increment_quality();
                             }
                         }
 
                         if item.sell_in < 6 {
                             if item.quality < 50 {
-                                item.quality = item.quality + 1;
+                                item.increment_quality();
                             }
                         }
                     }
@@ -60,7 +72,7 @@ impl GildedRose {
             }
 
             if item.name != "Sulfuras, Hand of Ragnaros" {
-                item.sell_in = item.sell_in - 1;
+                item.decrement_sell_in();
             }
 
             if item.sell_in < 0 {
@@ -68,7 +80,7 @@ impl GildedRose {
                     if item.name != "Backstage passes to a TAFKAL80ETC concert" {
                         if item.quality > 0 {
                             if item.name != "Sulfuras, Hand of Ragnaros" {
-                                item.quality = item.quality - 1;
+                                item.decrement_quality();
                             }
                         }
                     } else {
@@ -76,7 +88,7 @@ impl GildedRose {
                     }
                 } else {
                     if item.quality < 50 {
-                        item.quality = item.quality + 1;
+                        item.increment_quality();
                     }
                 }
             }
