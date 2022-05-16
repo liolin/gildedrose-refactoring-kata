@@ -101,6 +101,33 @@ mod tests {
     use super::{GildedRose, Item};
 
     #[test]
+    pub fn test_increment_quality() {
+        let mut item = Item::new("asdf", 10, 20);
+
+        item.increment_quality();
+
+        assert_eq!(21, item.quality);
+    }
+
+    #[test]
+    pub fn test_decrement_quality() {
+        let mut item = Item::new("asdf", 10, 20);
+
+        item.decrement_quality();
+
+        assert_eq!(19, item.quality);
+    }
+
+    #[test]
+    pub fn test_decrement_sell_in() {
+        let mut item = Item::new("asdf", 10, 20);
+
+        item.decrement_sell_in();
+
+        assert_eq!(9, item.sell_in);
+    }
+
+    #[test]
     pub fn test_dexterity_vest() {
         let name = "+5 Dexterity Vest";
         let items = vec![Item::new(name, 10, 20)];
