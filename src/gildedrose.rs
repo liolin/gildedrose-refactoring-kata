@@ -89,11 +89,110 @@ mod tests {
     use super::{GildedRose, Item};
 
     #[test]
-    pub fn foo() {
-        let items = vec![Item::new("foo", 0, 0)];
+    pub fn test_dexterity_vest() {
+        let name = "+5 Dexterity Vest";
+        let items = vec![Item::new(name, 10, 20)];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!("fixme", rose.items[0].name);
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(9, rose.items[0].sell_in);
+        assert_eq!(19, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn test_aged_bire() {
+        let name = "Aged Brie";
+        let items = vec![Item::new(name, 2, 0)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(1, rose.items[0].sell_in);
+        assert_eq!(1, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn test_elixier_of_the_mongoose() {
+        let name = "Elixir of the Mongoose";
+        let items = vec![Item::new(name, 5, 7)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(4, rose.items[0].sell_in);
+        assert_eq!(6, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn sulfuras_hand_of_ragnaros_v1() {
+        let name = "Sulfuras, Hand of Ragnaros";
+        let items = vec![Item::new(name, 0, 80)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(0, rose.items[0].sell_in);
+        assert_eq!(80, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn sulfuras_hand_of_ragnaros_v2() {
+        let name = "Sulfuras, Hand of Ragnaros";
+        let items = vec![Item::new(name, -1, 80)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(-1, rose.items[0].sell_in);
+        assert_eq!(80, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn backstage_passes_v1() {
+        let name = "Backstage passes to a TAFKAL80ETC concert";
+        let items = vec![Item::new(name, 15, 20)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(14, rose.items[0].sell_in);
+        assert_eq!(21, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn backstage_passes_v2() {
+        let name = "Backstage passes to a TAFKAL80ETC concert";
+        let items = vec![Item::new(name, 10, 49)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(9, rose.items[0].sell_in);
+        assert_eq!(50, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn backstage_passes_v3() {
+        let name = "Backstage passes to a TAFKAL80ETC concert";
+        let items = vec![Item::new(name, 5, 49)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(4, rose.items[0].sell_in);
+        assert_eq!(50, rose.items[0].quality);
+    }
+
+    #[test]
+    pub fn conjured_mana_cake() {
+        let name = "Conjured Mana Cake";
+        let items = vec![Item::new(name, 3, 6)];
+        let mut rose = GildedRose::new(items);
+        rose.update_quality();
+
+        assert_eq!(name, rose.items[0].name);
+        assert_eq!(2, rose.items[0].sell_in);
+        assert_eq!(5, rose.items[0].quality);
     }
 }
