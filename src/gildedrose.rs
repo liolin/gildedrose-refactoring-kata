@@ -1,9 +1,12 @@
 use std::fmt::{self, Display};
+
+type FnPtr = fn(&mut Item) -> ();
+
 pub struct Item {
     pub name: String,
     pub sell_in: i32,
     pub quality: i32,
-    update_strategy: Box<dyn UpdateStrategy>,
+    update_strategy: FnPtr,
 }
 
 impl Item {
@@ -11,7 +14,7 @@ impl Item {
         name: impl Into<String>,
         sell_in: i32,
         quality: i32,
-        update_strategy: Box<dyn UpdateStrategy>,
+        update_strategy: FnPtr,
     ) -> Item {
         Item {
             name: name.into(),
@@ -32,21 +35,94 @@ impl Item {
     pub fn decrement_sell_in(&mut self) {
         self.sell_in = self.sell_in - 1;
     }
-}
 
-pub struct EmptyUpdate;
-impl UpdateStrategy for EmptyUpdate {
-    fn update(&mut self) {}
-}
-
-impl UpdateStrategy for Item {
-    fn update(&mut self) {
-        todo!()
+    pub fn update(&mut self) {
+        (self.update_strategy)(self)
     }
 }
 
-pub trait UpdateStrategy {
-    fn update(&mut self);
+pub struct ItemFactory;
+impl ItemFactory {
+    pub fn create_dexterity_vest(sell_in: i32, quality: i32) -> Item {
+        Item::new("+5 Dexterity Vest", sell_in, quality, |item| {
+            if item.quality > 0 {
+                item.decrement_quality()
+            }
+
+            item.decrement_sell_in();
+
+            if item.sell_in < 0 && item.quality > 0 {
+                item.decrement_quality()
+            }
+        })
+    }
+
+    pub fn create_aged_brie(sell_in: i32, quality: i32) -> Item {
+        Item::new("Aged Brie", sell_in, quality, |item| {
+            if item.quality < 50 {
+                item.increment_quality();
+            }
+
+            item.decrement_sell_in();
+
+            if item.sell_in < 0 && item.quality < 50 {
+                item.increment_quality();
+            }
+        })
+    }
+
+    pub fn create_elixier_of_the_mongoose(sell_in: i32, quality: i32) -> Item {
+        Item::new("Elixir of the Mongoose", sell_in, quality, |item| {
+            if item.quality > 0 {
+                item.decrement_quality();
+            }
+
+            item.decrement_sell_in();
+
+            if item.sell_in < 0 && item.quality > 0 {
+                item.decrement_quality();
+            }
+        })
+    }
+
+    pub fn create_sulfuras_hand_of_ragnaros(sell_in: i32, quality: i32) -> Item {
+        Item::new("Sulfuras, Hand of Ragnaros", sell_in, quality, |_| {})
+    }
+
+    pub fn create_backstage_passes_to_a_concert(sell_in: i32, quality: i32) -> Item {
+        Item::new(
+            "Backstage passes to a TAFKAL80ETC concert",
+            sell_in,
+            quality,
+            |item| {
+                if item.quality < 50 {
+                    item.increment_quality();
+                }
+
+                if item.quality < 50 && item.sell_in < 11 {
+                    item.increment_quality();
+                }
+
+                if item.quality < 50 && item.sell_in < 6 {
+                    item.increment_quality();
+                }
+            },
+        )
+    }
+
+    pub fn create_conjured_mana_cake(sell_in: i32, quality: i32) -> Item {
+        Item::new("Conjured Mana Cake", sell_in, quality, |item| {
+            if item.quality > 0 {
+                item.decrement_quality();
+            }
+
+            item.decrement_sell_in();
+
+            if item.sell_in < 0 && item.quality > 0 {
+                item.decrement_quality();
+            }
+        })
+    }
 }
 
 impl Display for Item {
@@ -120,11 +196,11 @@ impl GildedRose {
 
 #[cfg(test)]
 mod tests {
-    use super::{EmptyUpdate, GildedRose, Item};
+    use super::{GildedRose, Item, ItemFactory};
 
     #[test]
     pub fn test_increment_quality() {
-        let mut item = Item::new("asdf", 10, 20, Box::new(EmptyUpdate));
+        let mut item = Item::new("asdf", 10, 20, |i| {});
 
         item.increment_quality();
 
@@ -133,7 +209,7 @@ mod tests {
 
     #[test]
     pub fn test_decrement_quality() {
-        let mut item = Item::new("asdf", 10, 20, Box::new(EmptyUpdate));
+        let mut item = Item::new("asdf", 10, 20, |i| {});
 
         item.decrement_quality();
 
@@ -142,7 +218,7 @@ mod tests {
 
     #[test]
     pub fn test_decrement_sell_in() {
-        let mut item = Item::new("asdf", 10, 20, Box::new(EmptyUpdate));
+        let mut item = Item::new("asdf", 10, 20, |i| {});
 
         item.decrement_sell_in();
 
@@ -152,7 +228,7 @@ mod tests {
     #[test]
     pub fn test_dexterity_vest() {
         let name = "+5 Dexterity Vest";
-        let items = vec![Item::new(name, 10, 20, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 10, 20, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -164,7 +240,7 @@ mod tests {
     #[test]
     pub fn test_aged_bire() {
         let name = "Aged Brie";
-        let items = vec![Item::new(name, 2, 0, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 2, 0, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -176,7 +252,7 @@ mod tests {
     #[test]
     pub fn test_elixier_of_the_mongoose() {
         let name = "Elixir of the Mongoose";
-        let items = vec![Item::new(name, 5, 7, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 5, 7, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -188,7 +264,7 @@ mod tests {
     #[test]
     pub fn sulfuras_hand_of_ragnaros_v1() {
         let name = "Sulfuras, Hand of Ragnaros";
-        let items = vec![Item::new(name, 0, 80, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 0, 80, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -200,7 +276,7 @@ mod tests {
     #[test]
     pub fn sulfuras_hand_of_ragnaros_v2() {
         let name = "Sulfuras, Hand of Ragnaros";
-        let items = vec![Item::new(name, -1, 80, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, -1, 80, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -212,7 +288,7 @@ mod tests {
     #[test]
     pub fn backstage_passes_v1() {
         let name = "Backstage passes to a TAFKAL80ETC concert";
-        let items = vec![Item::new(name, 15, 20, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 15, 20, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -224,7 +300,7 @@ mod tests {
     #[test]
     pub fn backstage_passes_v2() {
         let name = "Backstage passes to a TAFKAL80ETC concert";
-        let items = vec![Item::new(name, 10, 49, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 10, 49, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -236,7 +312,7 @@ mod tests {
     #[test]
     pub fn backstage_passes_v3() {
         let name = "Backstage passes to a TAFKAL80ETC concert";
-        let items = vec![Item::new(name, 5, 49, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 5, 49, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
@@ -248,7 +324,7 @@ mod tests {
     #[test]
     pub fn conjured_mana_cake() {
         let name = "Conjured Mana Cake";
-        let items = vec![Item::new(name, 3, 6, Box::new(EmptyUpdate))];
+        let items = vec![Item::new(name, 3, 6, |i| {})];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
