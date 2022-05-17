@@ -2,6 +2,38 @@ use std::fmt::{self, Display};
 
 type FnPtr = fn(&mut Item) -> ();
 
+fn default_update(item: &mut Item) {
+    if item.quality > 0 {
+        item.decrement_quality()
+    }
+
+    item.decrement_sell_in();
+
+    if item.sell_in < 0 && item.quality > 0 {
+        item.decrement_quality()
+    }
+}
+
+fn backstage_update(item: &mut Item) {
+    if item.quality < 50 {
+        item.increment_quality();
+    }
+
+    if item.quality < 50 && item.sell_in < 11 {
+        item.increment_quality();
+    }
+
+    if item.quality < 50 && item.sell_in < 6 {
+        item.increment_quality();
+    }
+
+    item.decrement_sell_in();
+
+    if item.sell_in < 0 {
+        item.quality = 0;
+    }
+}
+
 pub struct Item {
     pub name: String,
     pub sell_in: i32,
@@ -44,17 +76,7 @@ impl Item {
 pub struct ItemFactory;
 impl ItemFactory {
     pub fn create_dexterity_vest(sell_in: i32, quality: i32) -> Item {
-        Item::new("+5 Dexterity Vest", sell_in, quality, |item| {
-            if item.quality > 0 {
-                item.decrement_quality()
-            }
-
-            item.decrement_sell_in();
-
-            if item.sell_in < 0 && item.quality > 0 {
-                item.decrement_quality()
-            }
-        })
+        Item::new("+5 Dexterity Vest", sell_in, quality, default_update)
     }
 
     pub fn create_aged_brie(sell_in: i32, quality: i32) -> Item {
@@ -72,17 +94,7 @@ impl ItemFactory {
     }
 
     pub fn create_elixier_of_the_mongoose(sell_in: i32, quality: i32) -> Item {
-        Item::new("Elixir of the Mongoose", sell_in, quality, |item| {
-            if item.quality > 0 {
-                item.decrement_quality();
-            }
-
-            item.decrement_sell_in();
-
-            if item.sell_in < 0 && item.quality > 0 {
-                item.decrement_quality();
-            }
-        })
+        Item::new("Elixir of the Mongoose", sell_in, quality, default_update)
     }
 
     pub fn create_sulfuras_hand_of_ragnaros(sell_in: i32, quality: i32) -> Item {
@@ -94,40 +106,12 @@ impl ItemFactory {
             "Backstage passes to a TAFKAL80ETC concert",
             sell_in,
             quality,
-            |item| {
-                if item.quality < 50 {
-                    item.increment_quality();
-                }
-
-                if item.quality < 50 && item.sell_in < 11 {
-                    item.increment_quality();
-                }
-
-                if item.quality < 50 && item.sell_in < 6 {
-                    item.increment_quality();
-                }
-
-                item.decrement_sell_in();
-
-                if item.sell_in < 0 {
-                    item.quality = 0;
-                }
-            },
+            backstage_update,
         )
     }
 
     pub fn create_conjured_mana_cake(sell_in: i32, quality: i32) -> Item {
-        Item::new("Conjured Mana Cake", sell_in, quality, |item| {
-            if item.quality > 0 {
-                item.decrement_quality();
-            }
-
-            item.decrement_sell_in();
-
-            if item.sell_in < 0 && item.quality > 0 {
-                item.decrement_quality();
-            }
-        })
+        Item::new("Conjured Mana Cake", sell_in, quality, default_update)
     }
 }
 
@@ -147,9 +131,7 @@ impl GildedRose {
     }
 
     pub fn update_quality(&mut self) {
-        for item in &mut self.items {
-            item.update();
-        }
+        self.items.iter_mut().for_each(|item| item.update())
     }
 }
 
