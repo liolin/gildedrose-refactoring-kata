@@ -1,19 +1,19 @@
 mod gildedrose;
 
-use gildedrose::{GildedRose, Item};
+use gildedrose::{GildedRose, ItemFactory};
 
 fn main() {
     let items = vec![
-        Item::new("+5 Dexterity Vest", 10, 20, |i| {}),
-        Item::new("Aged Brie", 2, 0, |i| {}),
-        Item::new("Elixir of the Mongoose", 5, 7, |i| {}),
-        Item::new("Sulfuras, Hand of Ragnaros", 0, 80, |i| {}),
-        Item::new("Sulfuras, Hand of Ragnaros", -1, 80, |i| {}),
-        Item::new("Backstage passes to a TAFKAL80ETC concert", 15, 20, |i| {}),
-        Item::new("Backstage passes to a TAFKAL80ETC concert", 10, 49, |i| {}),
-        Item::new("Backstage passes to a TAFKAL80ETC concert", 5, 49, |i| {}),
+        ItemFactory::create_dexterity_vest(10, 20),
+        ItemFactory::create_aged_brie(2, 0),
+        ItemFactory::create_elixier_of_the_mongoose(5, 7),
+        ItemFactory::create_sulfuras_hand_of_ragnaros(0, 80),
+        ItemFactory::create_sulfuras_hand_of_ragnaros(-1, 80),
+        ItemFactory::create_backstage_passes_to_a_concert(15, 20),
+        ItemFactory::create_backstage_passes_to_a_concert(10, 49),
+        ItemFactory::create_backstage_passes_to_a_concert(5, 49),
         // this conjured item does not work properly yet
-        Item::new("Conjured Mana Cake", 3, 6, |i| {}),
+        ItemFactory::create_conjured_mana_cake(3, 6),
     ];
     let mut rose = GildedRose::new(items);
 
