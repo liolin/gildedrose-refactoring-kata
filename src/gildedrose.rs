@@ -1,58 +1,31 @@
+use super::update_strategy::{
+    AgedBrieUpdate, BackstgeUpdate, DefaultUpdate, EmptyUpdate, UpdateStrategy,
+};
 use std::fmt::{self, Display};
 
-type FnPtr = fn(&mut Item) -> ();
-
-fn default_update(item: &mut Item) {
-    if item.quality > 0 {
-        item.decrement_quality()
-    }
-
-    item.decrement_sell_in();
-
-    if item.sell_in < 0 && item.quality > 0 {
-        item.decrement_quality()
-    }
-}
-
-fn backstage_update(item: &mut Item) {
-    if item.quality < 50 {
-        item.increment_quality();
-    }
-
-    if item.quality < 50 && item.sell_in < 11 {
-        item.increment_quality();
-    }
-
-    if item.quality < 50 && item.sell_in < 6 {
-        item.increment_quality();
-    }
-
-    item.decrement_sell_in();
-
-    if item.sell_in < 0 {
-        item.quality = 0;
-    }
+pub struct ItemHolder {
+    pub item: Item,
+    update_strategy: Box<dyn UpdateStrategy>,
 }
 
 pub struct Item {
     pub name: String,
     pub sell_in: i32,
     pub quality: i32,
-    update_strategy: FnPtr,
+}
+
+impl ItemHolder {
+    pub fn update_item(&mut self) {
+        self.update_strategy.update_item(&mut self.item);
+    }
 }
 
 impl Item {
-    pub fn new(
-        name: impl Into<String>,
-        sell_in: i32,
-        quality: i32,
-        update_strategy: FnPtr,
-    ) -> Item {
+    pub fn new(name: impl Into<String>, sell_in: i32, quality: i32) -> Item {
         Item {
             name: name.into(),
             sell_in,
             quality,
-            update_strategy,
         }
     }
 
@@ -67,51 +40,52 @@ impl Item {
     pub fn decrement_sell_in(&mut self) {
         self.sell_in = self.sell_in - 1;
     }
-
-    pub fn update(&mut self) {
-        (self.update_strategy)(self)
-    }
 }
 
-pub struct ItemFactory;
-impl ItemFactory {
-    pub fn create_dexterity_vest(sell_in: i32, quality: i32) -> Item {
-        Item::new("+5 Dexterity Vest", sell_in, quality, default_update)
-    }
+#[non_exhaustive]
+pub enum ItemType {
+    DexterityVext,
+    AgedBrie,
+    ElixierOfTheMongoose,
+    SulfurasHandOfRagnaros,
+    BackstagePassesTAFKAL80ETCConcert,
+    ConjuredManaCake,
+}
 
-    pub fn create_aged_brie(sell_in: i32, quality: i32) -> Item {
-        Item::new("Aged Brie", sell_in, quality, |item| {
-            if item.quality < 50 {
-                item.increment_quality();
-            }
-
-            item.decrement_sell_in();
-
-            if item.sell_in < 0 && item.quality < 50 {
-                item.increment_quality();
-            }
-        })
-    }
-
-    pub fn create_elixier_of_the_mongoose(sell_in: i32, quality: i32) -> Item {
-        Item::new("Elixir of the Mongoose", sell_in, quality, default_update)
-    }
-
-    pub fn create_sulfuras_hand_of_ragnaros(sell_in: i32, quality: i32) -> Item {
-        Item::new("Sulfuras, Hand of Ragnaros", sell_in, quality, |_| {})
-    }
-
-    pub fn create_backstage_passes_to_a_concert(sell_in: i32, quality: i32) -> Item {
-        Item::new(
-            "Backstage passes to a TAFKAL80ETC concert",
-            sell_in,
-            quality,
-            backstage_update,
-        )
-    }
-
-    pub fn create_conjured_mana_cake(sell_in: i32, quality: i32) -> Item {
-        Item::new("Conjured Mana Cake", sell_in, quality, default_update)
+pub struct ItemHolderFactory;
+impl ItemHolderFactory {
+    pub fn create_item_holder(item_type: ItemType, sell_in: i32, quality: i32) -> ItemHolder {
+        match item_type {
+            ItemType::DexterityVext => ItemHolder {
+                item: Item::new("+5 Dexterity Vest", sell_in, quality),
+                update_strategy: Box::new(DefaultUpdate),
+            },
+            ItemType::AgedBrie => ItemHolder {
+                item: Item::new("Aged Brie", sell_in, quality),
+                update_strategy: Box::new(AgedBrieUpdate),
+            },
+            ItemType::ElixierOfTheMongoose => ItemHolder {
+                item: Item::new("Elixir of the Mongoose", sell_in, quality),
+                update_strategy: Box::new(DefaultUpdate),
+            },
+            ItemType::SulfurasHandOfRagnaros => ItemHolder {
+                item: Item::new("Sulfuras, Hand of Ragnaros", sell_in, quality),
+                update_strategy: Box::new(EmptyUpdate),
+            },
+            ItemType::BackstagePassesTAFKAL80ETCConcert => ItemHolder {
+                item: Item::new(
+                    "Backstage passes to a TAFKAL80ETC concert",
+                    sell_in,
+                    quality,
+                ),
+                update_strategy: Box::new(BackstgeUpdate),
+            },
+            ItemType::ConjuredManaCake => ItemHolder {
+                item: Item::new("Conjured Mana Cake", sell_in, quality),
+                update_strategy: Box::new(DefaultUpdate),
+            },
+            _ => unimplemented!(),
+        }
     }
 }
 
@@ -122,26 +96,28 @@ impl Display for Item {
 }
 
 pub struct GildedRose {
-    pub items: Vec<Item>,
+    pub item_holders: Vec<ItemHolder>,
 }
 
 impl GildedRose {
-    pub fn new(items: Vec<Item>) -> GildedRose {
-        GildedRose { items }
+    pub fn new(item_holders: Vec<ItemHolder>) -> GildedRose {
+        GildedRose { item_holders }
     }
 
     pub fn update_quality(&mut self) {
-        self.items.iter_mut().for_each(|item| item.update())
+        self.item_holders
+            .iter_mut()
+            .for_each(|item_holder| item_holder.update_item())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{GildedRose, Item, ItemFactory};
+    use super::{GildedRose, Item, ItemHolderFactory, ItemType};
 
     #[test]
     pub fn test_increment_quality() {
-        let mut item = Item::new("asdf", 10, 20, |_| {});
+        let mut item = Item::new("asdf", 10, 20);
 
         item.increment_quality();
 
@@ -150,7 +126,7 @@ mod tests {
 
     #[test]
     pub fn test_decrement_quality() {
-        let mut item = Item::new("asdf", 10, 20, |_| {});
+        let mut item = Item::new("asdf", 10, 20);
 
         item.decrement_quality();
 
@@ -159,7 +135,7 @@ mod tests {
 
     #[test]
     pub fn test_decrement_sell_in() {
-        let mut item = Item::new("asdf", 10, 20, |_| {});
+        let mut item = Item::new("asdf", 10, 20);
 
         item.decrement_sell_in();
 
@@ -169,154 +145,202 @@ mod tests {
     #[test]
     pub fn test_dexterity_vest() {
         let name = "+5 Dexterity Vest";
-        let items = vec![ItemFactory::create_dexterity_vest(10, 20)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::DexterityVext,
+            10,
+            20,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(9, rose.items[0].sell_in);
-        assert_eq!(19, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(9, rose.item_holders[0].item.sell_in);
+        assert_eq!(19, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn test_aged_bire() {
         let name = "Aged Brie";
-        let items = vec![ItemFactory::create_aged_brie(2, 0)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::AgedBrie,
+            2,
+            0,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(1, rose.items[0].sell_in);
-        assert_eq!(1, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(1, rose.item_holders[0].item.sell_in);
+        assert_eq!(1, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn test_elixier_of_the_mongoose() {
         let name = "Elixir of the Mongoose";
-        let items = vec![ItemFactory::create_elixier_of_the_mongoose(5, 7)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::ElixierOfTheMongoose,
+            5,
+            7,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(4, rose.items[0].sell_in);
-        assert_eq!(6, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(4, rose.item_holders[0].item.sell_in);
+        assert_eq!(6, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn sulfuras_hand_of_ragnaros_v1() {
         let name = "Sulfuras, Hand of Ragnaros";
-        let items = vec![ItemFactory::create_sulfuras_hand_of_ragnaros(0, 80)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::SulfurasHandOfRagnaros,
+            0,
+            80,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(0, rose.items[0].sell_in);
-        assert_eq!(80, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(0, rose.item_holders[0].item.sell_in);
+        assert_eq!(80, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn sulfuras_hand_of_ragnaros_v2() {
         let name = "Sulfuras, Hand of Ragnaros";
-        let items = vec![ItemFactory::create_sulfuras_hand_of_ragnaros(-1, 80)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::SulfurasHandOfRagnaros,
+            -1,
+            80,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(-1, rose.items[0].sell_in);
-        assert_eq!(80, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(-1, rose.item_holders[0].item.sell_in);
+        assert_eq!(80, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn backstage_passes_v1() {
         let name = "Backstage passes to a TAFKAL80ETC concert";
-        let items = vec![ItemFactory::create_backstage_passes_to_a_concert(15, 20)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::BackstagePassesTAFKAL80ETCConcert,
+            15,
+            20,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(14, rose.items[0].sell_in);
-        assert_eq!(21, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(14, rose.item_holders[0].item.sell_in);
+        assert_eq!(21, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn backstage_passes_v2() {
         let name = "Backstage passes to a TAFKAL80ETC concert";
-        let items = vec![ItemFactory::create_backstage_passes_to_a_concert(10, 49)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::BackstagePassesTAFKAL80ETCConcert,
+            10,
+            49,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(9, rose.items[0].sell_in);
-        assert_eq!(50, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(9, rose.item_holders[0].item.sell_in);
+        assert_eq!(50, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn backstage_passes_v3() {
         let name = "Backstage passes to a TAFKAL80ETC concert";
-        let items = vec![ItemFactory::create_backstage_passes_to_a_concert(5, 49)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::BackstagePassesTAFKAL80ETCConcert,
+            5,
+            49,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(4, rose.items[0].sell_in);
-        assert_eq!(50, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(4, rose.item_holders[0].item.sell_in);
+        assert_eq!(50, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn conjured_mana_cake() {
         let name = "Conjured Mana Cake";
-        let items = vec![ItemFactory::create_conjured_mana_cake(3, 6)];
+        let items = vec![ItemHolderFactory::create_item_holder(
+            ItemType::ConjuredManaCake,
+            3,
+            6,
+        )];
         let mut rose = GildedRose::new(items);
         rose.update_quality();
 
-        assert_eq!(name, rose.items[0].name);
-        assert_eq!(2, rose.items[0].sell_in);
-        assert_eq!(5, rose.items[0].quality);
+        assert_eq!(name, rose.item_holders[0].item.name);
+        assert_eq!(2, rose.item_holders[0].item.sell_in);
+        assert_eq!(5, rose.item_holders[0].item.quality);
     }
 
     #[test]
     pub fn multiple_updates() {
         let items = vec![
-            ItemFactory::create_dexterity_vest(10, 20),
-            ItemFactory::create_aged_brie(2, 0),
-            ItemFactory::create_elixier_of_the_mongoose(5, 7),
-            ItemFactory::create_sulfuras_hand_of_ragnaros(0, 80),
-            ItemFactory::create_sulfuras_hand_of_ragnaros(-1, 80),
-            ItemFactory::create_backstage_passes_to_a_concert(15, 20),
-            ItemFactory::create_backstage_passes_to_a_concert(10, 49),
-            ItemFactory::create_backstage_passes_to_a_concert(5, 49),
-            ItemFactory::create_conjured_mana_cake(3, 6),
+            ItemHolderFactory::create_item_holder(ItemType::DexterityVext, 10, 20),
+            ItemHolderFactory::create_item_holder(ItemType::AgedBrie, 2, 0),
+            ItemHolderFactory::create_item_holder(ItemType::ElixierOfTheMongoose, 5, 7),
+            ItemHolderFactory::create_item_holder(ItemType::SulfurasHandOfRagnaros, 0, 80),
+            ItemHolderFactory::create_item_holder(ItemType::SulfurasHandOfRagnaros, -1, 80),
+            ItemHolderFactory::create_item_holder(
+                ItemType::BackstagePassesTAFKAL80ETCConcert,
+                15,
+                20,
+            ),
+            ItemHolderFactory::create_item_holder(
+                ItemType::BackstagePassesTAFKAL80ETCConcert,
+                10,
+                49,
+            ),
+            ItemHolderFactory::create_item_holder(
+                ItemType::BackstagePassesTAFKAL80ETCConcert,
+                5,
+                49,
+            ),
+            ItemHolderFactory::create_item_holder(ItemType::ConjuredManaCake, 3, 6),
         ];
         let mut rose = GildedRose::new(items);
         for _ in 0..=29 {
             rose.update_quality();
         }
 
-        assert_eq!(-20, rose.items[0].sell_in);
-        assert_eq!(0, rose.items[0].quality);
+        assert_eq!(-20, rose.item_holders[0].item.sell_in);
+        assert_eq!(0, rose.item_holders[0].item.quality);
 
-        assert_eq!(-28, rose.items[1].sell_in);
-        assert_eq!(50, rose.items[1].quality);
+        assert_eq!(-28, rose.item_holders[1].item.sell_in);
+        assert_eq!(50, rose.item_holders[1].item.quality);
 
-        assert_eq!(-25, rose.items[2].sell_in);
-        assert_eq!(0, rose.items[2].quality);
+        assert_eq!(-25, rose.item_holders[2].item.sell_in);
+        assert_eq!(0, rose.item_holders[2].item.quality);
 
-        assert_eq!(0, rose.items[3].sell_in);
-        assert_eq!(80, rose.items[3].quality);
+        assert_eq!(0, rose.item_holders[3].item.sell_in);
+        assert_eq!(80, rose.item_holders[3].item.quality);
 
-        assert_eq!(-1, rose.items[4].sell_in);
-        assert_eq!(80, rose.items[4].quality);
+        assert_eq!(-1, rose.item_holders[4].item.sell_in);
+        assert_eq!(80, rose.item_holders[4].item.quality);
 
-        assert_eq!(-15, rose.items[5].sell_in);
-        assert_eq!(0, rose.items[5].quality);
+        assert_eq!(-15, rose.item_holders[5].item.sell_in);
+        assert_eq!(0, rose.item_holders[5].item.quality);
 
-        assert_eq!(-20, rose.items[6].sell_in);
-        assert_eq!(0, rose.items[6].quality);
+        assert_eq!(-20, rose.item_holders[6].item.sell_in);
+        assert_eq!(0, rose.item_holders[6].item.quality);
 
-        assert_eq!(-25, rose.items[7].sell_in);
-        assert_eq!(0, rose.items[7].quality);
+        assert_eq!(-25, rose.item_holders[7].item.sell_in);
+        assert_eq!(0, rose.item_holders[7].item.quality);
 
-        assert_eq!(-27, rose.items[8].sell_in);
-        assert_eq!(0, rose.items[8].quality);
+        assert_eq!(-27, rose.item_holders[8].item.sell_in);
+        assert_eq!(0, rose.item_holders[8].item.quality);
     }
 }

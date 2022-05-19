@@ -1,28 +1,25 @@
-mod gildedrose;
-
-use gildedrose::{GildedRose, ItemFactory};
+use rust::gildedrose::{GildedRose, ItemHolderFactory, ItemType};
 
 fn main() {
-    let items = vec![
-        ItemFactory::create_dexterity_vest(10, 20),
-        ItemFactory::create_aged_brie(2, 0),
-        ItemFactory::create_elixier_of_the_mongoose(5, 7),
-        ItemFactory::create_sulfuras_hand_of_ragnaros(0, 80),
-        ItemFactory::create_sulfuras_hand_of_ragnaros(-1, 80),
-        ItemFactory::create_backstage_passes_to_a_concert(15, 20),
-        ItemFactory::create_backstage_passes_to_a_concert(10, 49),
-        ItemFactory::create_backstage_passes_to_a_concert(5, 49),
-        // this conjured item does not work properly yet
-        ItemFactory::create_conjured_mana_cake(3, 6),
+    let item_holders = vec![
+        ItemHolderFactory::create_item_holder(ItemType::DexterityVext, 10, 20),
+        ItemHolderFactory::create_item_holder(ItemType::AgedBrie, 2, 0),
+        ItemHolderFactory::create_item_holder(ItemType::ElixierOfTheMongoose, 5, 7),
+        ItemHolderFactory::create_item_holder(ItemType::SulfurasHandOfRagnaros, 0, 80),
+        ItemHolderFactory::create_item_holder(ItemType::SulfurasHandOfRagnaros, -1, 80),
+        ItemHolderFactory::create_item_holder(ItemType::BackstagePassesTAFKAL80ETCConcert, 15, 20),
+        ItemHolderFactory::create_item_holder(ItemType::BackstagePassesTAFKAL80ETCConcert, 10, 49),
+        ItemHolderFactory::create_item_holder(ItemType::BackstagePassesTAFKAL80ETCConcert, 5, 49),
+        ItemHolderFactory::create_item_holder(ItemType::ConjuredManaCake, 3, 6),
     ];
-    let mut rose = GildedRose::new(items);
+    let mut rose = GildedRose::new(item_holders);
 
     println!("OMGHAI!");
     for i in 0..=30 {
         println!("-------- day {} --------", i);
         println!("name, sellIn, quality");
-        for item in &rose.items {
-            println!("{}", item);
+        for item_holder in &rose.item_holders {
+            println!("{}", item_holder.item);
         }
         println!();
         rose.update_quality();
